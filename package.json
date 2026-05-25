@@ -1,7 +1,7 @@
 {
   "name": "kristi-ai",
   "version": "1.2.0",
-  "description": "Production-ready Kristi AI Assistant with PWA and Premium UI",
+  "description": "Kristi AI Full Stack PWA",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
