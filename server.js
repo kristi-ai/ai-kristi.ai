@@ -1,137 +1,141 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const axios = require('axios');
 const fs = require('fs-extra');
 const cors = require('cors');
 const path = require('path');
 
 const app = express();
-app.use(express.json());
+// Увеличиваем лимит для передачи аватарок и фото (base64)
+app.use(express.json({ limit: '50mb' }));
 app.use(cors());
-// Разрешаем серверу отдавать все файлы (html, json, js иконки) из корня
 app.use(express.static(__dirname));
 
 const DB_FILE = './db.json';
 const GEMINI_KEY = 'AIzaSyA5qAs-al3dc9tNdzNEQ0QkU-Cdn7FFqDw';
-const ADMIN_PASS = 'kristi_admin_2026'; 
+const ADMIN_PASS = 'kristi_admin_2026';
 
-// Инициализация базы данных при первом запуске
 if (!fs.existsSync(DB_FILE)) {
-    fs.writeJsonSync(DB_FILE, { 
-        users: [], 
-        stats: { total_earned: 0, plus_count: 0, ultra_count: 0, total_users: 0 } 
-    });
+    fs.writeJsonSync(DB_FILE, { users: [], stats: { total_earned: 0, plus_count: 0, ultra_count: 0, total_users: 0 } });
 }
-
-const mailer = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: 'codes.kristi.ai@gmail.com', pass: 'vdzi nsih sojk wiqj' }
-});
 
 const getDB = () => fs.readJsonSync(DB_FILE);
 const saveDB = (data) => fs.writeJsonSync(DB_FILE, data);
 
-// --- API АВТОРИЗАЦИИ ---
-app.post('/api/auth/send-code', async (req, res) => {
-    const { email } = req.body;
-    const code = Math.floor(100000 + Math.random() * 900000);
-    const html = `
-        <div style="background:#0d0e12;color:#fff;padding:30px;text-align:center;font-family:sans-serif;">
-            <h1 style="color:#ff6b6b;">Kristi AI</h1>
-            <p>Ваш код подтверждения:</p>
-            <div style="font-size:32px; font-weight:bold; letter-spacing:5px; margin:20px 0;">${code}</div>
-        </div>`;
-    try {
-        await mailer.sendMail({ from: '"Kristi AI"', to: email, subject: 'Код активации Kristi', html });
-        res.json({ success: true, code }); 
-    } catch (e) { res.status(500).json({ error: 'Ошибка почты' }); }
-});
+// --- 1. АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ (USERNAME) ---
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Заполните все поля' });
 
-app.post('/api/auth/register', (req, res) => {
-    const { email, password } = req.body;
     const db = getDB();
-    let user = db.users.find(u => u.email === email);
-    
+    let user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+
     if (!user) {
-        user = { 
-            email, 
-            password, 
-            username: email.split('@')[0], 
-            plan: 'Free', 
-            requests: 0, 
-            limit: 100, 
-            voice: 'Kristi' 
+        // Регистрация нового пользователя
+        const newId = 'ID-' + Math.floor(100000 + Math.random() * 900000);
+        user = {
+            id: newId,
+            username,
+            password,
+            plan: 'Free',
+            requests: 0,
+            limit: 100,
+            avatar: null,
+            chat_history: []
         };
         db.users.push(user);
         db.stats.total_users++;
         saveDB(db);
-    } else {
-        // Если юзер есть, проверяем пароль
-        if (user.password !== password) return res.status(401).json({ error: 'Wrong password' });
+        return res.json({ success: true, user, isNew: true });
     }
+
+    // Вход существующего пользователя
+    if (user.password !== password) return res.status(401).json({ error: 'Неверный пароль' });
+    res.json({ success: true, user, isNew: false });
+});
+
+// --- 2. ПРОФИЛЬ (СМЕНА ПАРОЛЯ И АВАТАРА) ---
+app.post('/api/profile/update', (req, res) => {
+    const { username, oldPassword, newPassword, avatar } = req.body;
+    const db = getDB();
+    const user = db.users.find(u => u.username === username);
+
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+    if (newPassword) {
+        if (user.password !== oldPassword) return res.status(401).json({ error: 'Неверный старый пароль' });
+        user.password = newPassword;
+    }
+    
+    if (avatar) user.avatar = avatar;
+
+    saveDB(db);
     res.json({ success: true, user });
 });
 
-// --- API ЧАТА ---
+// --- 3. ИИ ЧАТ (ИСТОРИЯ + GEMINI) ---
 app.post('/api/chat', async (req, res) => {
-    const { email, prompt, mode } = req.body;
+    const { username, prompt, mode, imageBase64 } = req.body;
     const db = getDB();
-    const user = db.users.find(u => u.email === email);
+    const user = db.users.find(u => u.username === username);
+
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+    if (user.plan !== 'Ultra' && user.requests >= user.limit) return res.json({ error: 'Лимит исчерпан. Оформите тариф Plus или Ultra.' });
+
+    let sysInstr = "Ты Kristi, мотивирующий ИИ ассистент.";
+    if (mode === 'Fast') sysInstr += " Отвечай максимально коротко.";
+    if (mode === 'Pro') sysInstr += " Отвечай как эксперт, давай глубокий аналитический разбор.";
+
+    let parts = [{ text: `${sysInstr}\n\nПользователь: ${prompt}` }];
     
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    
-    // Проверка лимитов (Ultra — безлимит)
-    if (user.plan !== 'Ultra' && user.requests >= user.limit) {
-        return res.json({ error: 'Лимит исчерпан. Перейдите на Plus или Ultra.' });
+    // Если пользователь прикрепил картинку
+    if (imageBase64) {
+        const base64Data = imageBase64.split(',')[1];
+        const mimeType = imageBase64.match(/data:(.*?);base64/)[1];
+        parts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
     }
 
-    let systemInstruction = "Ты — Kristi, умный и мотивирующий ассистент.";
-    if(mode === 'Fast') systemInstruction += " Отвечай максимально кратко.";
-    if(mode === 'Pro') systemInstruction += " Давай глубокий, экспертный и детальный ответ.";
-
     try {
-        const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
-            contents: [{ parts: [{ text: `${systemInstruction}\n\nПользователь: ${prompt}` }] }]
+        const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+            contents: [{ parts: parts }]
         });
         
+        const answerText = response.data.candidates[0].content.parts[0].text;
+
+        // Сохранение истории
+        user.chat_history.push({ role: 'user', text: prompt, time: new Date().toISOString() });
+        user.chat_history.push({ role: 'kristi', text: answerText, time: new Date().toISOString() });
         user.requests++;
+        
         saveDB(db);
-        res.json({ answer: response.data.candidates[0].content.parts[0].text });
-    } catch (e) {
-        res.status(500).json({ error: 'Ошибка ИИ. Проверьте API ключ.' });
+        res.json({ answer: answerText });
+    } catch (error) {
+        res.status(500).json({ error: 'Ошибка соединения с ядром ИИ.' });
     }
 });
 
-// --- API АДМИН-ПАНЕЛИ ---
+// --- 4. АДМИН-ПАНЕЛЬ ---
 app.post('/api/admin/data', (req, res) => {
     if (req.body.password !== ADMIN_PASS) return res.status(403).json({ error: 'Доступ запрещен' });
     res.json(getDB());
 });
 
-app.post('/api/admin/give-plan', (req, res) => {
-    const { password, email, plan } = req.body;
+app.post('/api/admin/set-plan', (req, res) => {
+    const { password, username, plan } = req.body;
     if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Доступ запрещен' });
 
     const db = getDB();
-    const user = db.users.find(u => u.email === email);
-    
-    if (user) {
-        user.plan = plan;
-        if (plan === 'Plus') {
-            user.limit = 200;
-            db.stats.plus_count++;
-        } else if (plan === 'Ultra') {
-            user.limit = 999999;
-            db.stats.ultra_count++;
-        } else {
-            user.limit = 100;
-        }
-        saveDB(db);
-        res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'Пользователь не найден' });
-    }
+    const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+    user.plan = plan;
+    if (plan === 'Plus') { user.limit = 200; db.stats.plus_count++; }
+    else if (plan === 'Ultra') { user.limit = 999999; db.stats.ultra_count++; }
+    else { user.limit = 100; }
+
+    saveDB(db);
+    res.json({ success: true, message: `Тариф ${plan} выдан пользователю ${username}` });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server LIVE on port ${PORT}`));
+app.listen(PORT, () => console.log(`Сервер Kristi запущен на порту ${PORT}`));
