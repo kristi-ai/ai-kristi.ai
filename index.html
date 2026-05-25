@@ -3,300 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kristi AI — Your Intelligent Assistant</title>
+    <title>Kristi AI</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ff6b6b">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1698/1698535.png">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f1016 0%, #07080a 100%);
-            --glass-bg: rgba(255, 255, 255, 0.03);
+            --bg-gradient: linear-gradient(135deg, #0d0f14 0%, #050608 100%);
+            --glass-bg: rgba(255, 255, 255, 0.04);
             --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-primary: linear-gradient(135deg, #ff6b6b, #ff8e53);
-            --accent-voice: linear-gradient(135deg, #4facfe, #00f2fe);
+            --accent: #ff6b6b;
+            --accent-glow: rgba(255, 107, 107, 0.4);
             --text-main: #f5f7fa;
-            --text-muted: #718096;
         }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-        body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; overflow-x: hidden; }
+        .glass-card { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); position: relative; }
+        
+        h1, h2 { color: var(--accent); text-align: center; margin-bottom: 20px; }
+        input, select, textarea { width: 100%; padding: 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; color: #fff; margin-bottom: 15px; outline: none; }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: #fff; transition: 0.3s; margin-bottom: 10px; }
+        .btn-primary { background: var(--accent); box-shadow: 0 4px 15px var(--accent-glow); }
+        .btn-voice { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        
+        /* Чат */
+        .chat-box { height: 400px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 12px 16px; border-radius: 14px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
+        .msg.user { background: rgba(255,255,255,0.08); align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg.kristi { background: rgba(255,107,107,0.15); border: 1px solid rgba(255,107,107,0.2); align-self: flex-start; border-bottom-left-radius: 2px; }
 
-        /* Эффект Стекла (Glassmorphic Container) */
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            transition: all 0.4s ease;
-        }
-
-        h1 { font-size: 32px; font-weight: 700; text-align: center; margin-bottom: 24px; background: var(--accent-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p.subtitle { text-align: center; color: var(--text-muted); font-size: 14px; margin-top: -16px; margin-bottom: 30px; }
-
-        .input-group { position: relative; margin-bottom: 16px; }
-        input, select, textarea {
-            width: 100%; padding: 14px 16px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text-main); font-size: 15px; outline: none; transition: all 0.3s ease;
-        }
-        input:focus, select:focus, textarea:focus { border-color: #ff6b6b; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
-
-        button {
-            width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; color: #fff; cursor: pointer; transition: all 0.3s ease; margin-top: 10px;
-        }
-        .btn-primary { background: var(--accent-primary); box-shadow: 0 4px 15px rgba(255,107,107,0.3); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,107,107,0.4); }
-        .btn-voice { background: var(--accent-voice); margin-top: 15px; box-shadow: 0 4px 15px rgba(79,172,254,0.3); }
-        .btn-voice:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(79,172,254,0.4); }
-
-        .or-divider { text-align: center; color: var(--text-muted); font-size: 12px; margin: 16px 0; text-transform: uppercase; letter-spacing: 1px; }
-        .link-btn { text-align: center; color: #ff6b6b; font-size: 14px; cursor: pointer; margin-top: 12px; text-decoration: none; display: block; }
-
-        /* Контейнер Чата */
-        .chat-container { width: 100%; max-width: 800px; display: flex; flex-direction: column; height: 85vh; }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 20px; background: rgba(0,0,0,0.15); border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 20px; }
-        .message { margin-bottom: 16px; padding: 12px 16px; border-radius: 14px; max-width: 80%; line-height: 1.5; font-size: 15px; }
-        .message.user { background: rgba(255,255,255,0.06); align-self: flex-end; margin-left: auto; border-bottom-right-radius: 2px; }
-        .message.kristi { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.2); align-self: flex-start; border-bottom-left-radius: 2px; }
-
-        /* Анимация волны при прослушивании */
-        .voice-wave { display: flex; justify-content: center; align-items: center; gap: 4px; height: 30px; margin: 10px 0; display: none; }
-        .wave-bar { width: 4px; height: 10px; background: #00f2fe; border-radius: 2px; animation: wave 1.2s ease-in-out infinite; }
-        .wave-bar:nth-child(2) { animation-delay: 0.2s; }
-        .wave-bar:nth-child(3) { animation-delay: 0.4s; }
-        .wave-bar:nth-child(4) { animation-delay: 0.6s; }
-
-        @keyframes wave { 0%, 100% { height: 10px; } 50% { height: 30px; } }
+        /* Профиль шапка */
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
+        .avatar-wrap { display: flex; align-items: center; gap: 15px; cursor: pointer; }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #2c2e3e; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Модалка профиля */
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px; z-index: 10; }
         .hidden { display: none !important; }
-
-        /* Панель Тарифов */
-        .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .price-card { background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 15px; border-radius: 12px; text-align: center; }
-        .price-card.active { border-color: #ff6b6b; background: rgba(255,107,107,0.05); }
-
-        /* Кастомное Уведомление */
-        .toast { position: fixed; top: 20px; right: 20px; background: #1a1b23; border: 1px solid #ff6b6b; color: #fff; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; transform: translateY(-100px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .toast.show { transform: translateY(0); }
     </style>
 </head>
 <body>
 
-    <div id="toast-notification" class="toast">Уведомление</div>
-
-    <!-- ЭКРАН АВТОРИЗАЦИИ / РЕГИСТРАЦИИ -->
     <div id="auth-screen" class="glass-card">
-        <h1 id="auth-title">Kristi AI</h1>
-        <p class="subtitle" id="auth-subtitle">Войдите в свой аккаунт для общения с ИИ</p>
-        
-        <div class="input-group">
-            <input type="email" id="auth-email" placeholder="E-mail адрес">
-        </div>
-        <div class="input-group" id="password-group">
-            <input type="password" id="auth-password" placeholder="Пароль">
-        </div>
-        <div class="input-group hidden" id="code-group">
-            <input type="text" id="auth-code" placeholder="6-значный код подтверждения">
-        </div>
-
-        <button class="btn-primary" id="btn-main-action" onclick="handlePrimaryAction()">Получить код регистрации</button>
-        
-        <div class="or-divider" id="auth-divider">или</div>
-        <span class="link-btn" id="switch-auth-mode" onclick="toggleAuthMode()">У меня уже есть аккаунт (Вход)</span>
-        <span class="link-btn hidden" id="forgot-password-link" onclick="triggerForgotPasswordFlow()">Забыли пароль?</span>
+        <h1>Kristi AI</h1>
+        <p style="text-align: center; color: #777; margin-bottom: 20px;">Вход или Регистрация по Username</p>
+        <input type="text" id="auth-username" placeholder="Придумайте или введите Username">
+        <input type="password" id="auth-password" placeholder="Пароль">
+        <button class="btn-primary" onclick="login()">Продолжить</button>
     </div>
 
-    <!-- ОСНОВНОЙ ЭКРАН ЧАТА И НАСТРОЕК -->
-    <div id="main-screen" class="glass-card chat-container hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h2 id="user-display-name" style="font-size: 20px; color: #fff;">Username</h2>
-                <p id="user-status-plan" style="font-size: 12px; color: #ff6b6b;">Тариф: Free (Осталось: 100)</p>
+    <div id="main-screen" class="glass-card hidden" style="max-width: 600px;">
+        <div class="header">
+            <div class="avatar-wrap" onclick="toggleProfile()">
+                <div class="avatar" id="ui-avatar">K</div>
+                <div>
+                    <div style="font-weight: bold; font-size: 18px;" id="ui-username">User</div>
+                    <div style="font-size: 12px; color: var(--accent);" id="ui-id">ID: 000000</div>
+                </div>
             </div>
-            <div style="display: flex; gap: 10px; width: 60%;">
-                <select id="select-voice" onchange="updateVoiceSettings()">
-                    <option value="Kristi">Kristi (Мотивация)</option>
-                    <option value="Albi">Albi (Мягкий)</option>
-                    <option value="Erik">Erik (Мужественный)</option>
-                </select>
-                <select id="select-mode">
-                    <option value="Fast">Fast Режим</option>
-                    <option value="Ultra" selected>Ultra Режим</option>
-                    <option value="Pro">Pro Режим</option>
-                </select>
+            <div style="text-align: right; font-size: 12px;">
+                <span id="ui-plan" style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px;">Тариф: Free</span>
             </div>
         </div>
 
-        <div class="chat-messages" id="chat-scroller">
-            <div class="message kristi">Привет! Я Kristi. Какой режим тестируем сегодня? Ты можешь писать мне или нажать кнопку Life режима для общения голосом.</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <select id="voice-select">
+                <option value="Kristi">Голос: Kristi (Мотивация)</option>
+                <option value="Albi">Голос: Albi (Мягкий)</option>
+                <option value="Erik">Голос: Erik (Грубый)</option>
+            </select>
+            <select id="mode-select">
+                <option value="Fast">Fast</option><option value="Ultra" selected>Ultra</option><option value="Pro">Pro</option>
+            </select>
         </div>
 
-        <!-- Анимация прослушивания голоса -->
-        <div class="voice-wave" id="voice-wave-animation">
-            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-        </div>
+        <div class="chat-box" id="chat"></div>
 
-        <div style="position: relative; display: flex; gap: 10px; align-items: center;">
-            <textarea id="chat-input" placeholder="Введите ваш запрос или прикрепите файлы..." rows="1" style="resize: none; max-height: 150px;"></textarea>
-            <button class="btn-primary" style="width: auto; padding: 14px 24px; margin-top: 0;" onclick="sendTextMessage()">Отправить</button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <label style="cursor: pointer; background: rgba(255,255,255,0.1); padding: 14px; border-radius: 12px;">
+                📎<input type="file" id="file-upload" accept="image/*" class="hidden" onchange="handleFile()">
+            </label>
+            <textarea id="prompt" rows="1" placeholder="Ваш запрос..." style="margin: 0; height: 50px; resize: none;"></textarea>
+            <button class="btn-primary" style="width: auto; margin: 0; padding: 0 20px;" onclick="sendMsg()">➤</button>
         </div>
+        <button class="btn-voice" onclick="startLifeMode()">🎙 Life Режим</button>
+    </div>
 
-        <button class="btn-voice" id="btn-life-mode" onclick="toggleLifeMode()">Включить LIFE Режим</button>
-        
-        <!-- Секция улучшения тарифа -->
-        <div class="pricing-grid">
-            <div class="price-card" onclick="purchasePlan('Plus')">
-                <h4 style="color:#fff;">Plus Тариф</h4>
-                <p style="font-size:12px; margin: 5px 0; color:var(--text-muted)">200 запр. / 50 фото</p>
-                <b style="color:#ff6b6b">200₽ / мес</b>
-            </div>
-            <div class="price-card" onclick="purchasePlan('Ultra')">
-                <h4 style="color:#fff;">Ultra Тариф</h4>
-                <p style="font-size:12px; margin: 5px 0; color:var(--text-muted)">Полный безлимит</p>
-                <b style="color:#ff6b6b">1000₽ / мес</b>
-            </div>
-        </div>
+    <div id="profile-modal" class="modal">
+        <h2>Настройки профиля</h2>
+        <label style="display:block; text-align:center; margin-bottom:15px; cursor:pointer; color:var(--accent);">
+            Изменить аватар
+            <input type="file" accept="image/*" class="hidden" onchange="uploadAvatar(event)">
+        </label>
+        <input type="password" id="old-pass" placeholder="Старый пароль (для смены)">
+        <input type="password" id="new-pass" placeholder="Новый пароль">
+        <button class="btn-primary" onclick="updateProfile()">Сохранить изменения</button>
+        <button style="background: transparent; border: 1px solid #fff;" onclick="toggleProfile()">Закрыть</button>
     </div>
 
     <script>
-        let currentMode = 'signup'; // signup, signin, forgot, verify_signup, verify_forgot
-        let cachedServerCode = null;
-        let activeSessionUser = null;
-        let voiceSynthesisEngine = window.speechSynthesis;
+        let currentUser = null;
+        let attachedImageBase64 = null;
 
-        function showToast(text) {
-            const t = document.getElementById('toast-notification');
-            t.innerText = text; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 4000);
-        }
-
-        function toggleAuthMode() {
-            if(currentMode === 'signup' || currentMode === 'verify_signup') {
-                currentMode = 'signin';
-                document.getElementById('auth-title').innerText = "Вход в Kristi";
-                document.getElementById('btn-main-action').innerText = "Войти";
-                document.getElementById('switch-auth-mode').innerText = "Создать новый аккаунт";
-                document.getElementById('code-group').classList.add('hidden');
-                document.getElementById('password-group').classList.remove('hidden');
-                document.getElementById('forgot-password-link').classList.remove('hidden');
-            } else {
-                currentMode = 'signup';
-                document.getElementById('auth-title').innerText = "Регистрация";
-                document.getElementById('btn-main-action').innerText = "Получить код регистрации";
-                document.getElementById('switch-auth-mode').innerText = "У меня уже есть аккаунт (Вход)";
-                document.getElementById('code-group').classList.add('hidden');
-                document.getElementById('forgot-password-link').classList.add('hidden');
-            }
-        }
-
-        async function handlePrimaryAction() {
-            const email = document.getElementById('auth-email').value;
+        async function login() {
+            const username = document.getElementById('auth-username').value;
             const password = document.getElementById('auth-password').value;
-            const codeInput = document.getElementById('auth-code').value;
+            if(!username || !password) return alert("Введите данные");
 
-            if(!email) return showToast("Введите email!");
-
-            if(currentMode === 'signup') {
-                const res = await fetch('/api/auth/send-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
-                const data = await res.json();
-                if(data.success) {
-                    cachedServerCode = data.code;
-                    currentMode = 'verify_signup';
-                    document.getElementById('code-group').classList.remove('hidden');
-                    document.getElementById('btn-main-action').innerText = "Завершить регистрацию";
-                    showToast("Код успешно отправлен на вашу почту!");
-                }
-            } 
-            else if(currentMode === 'verify_signup') {
-                if(codeInput !== String(cachedServerCode)) return showToast("Неверный проверочный код!");
-                const res = await fetch('/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
-                const data = await res.json();
-                if(data.success) {
-                    initializeUserSession(data.user);
-                }
-            } 
-            else if(currentMode === 'signin') {
-                const res = await fetch('/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
-                const data = await res.json();
-                if(data.success) initializeUserSession(data.user);
-            }
-        }
-
-        function initializeUserSession(user) {
-            activeSessionUser = user;
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('main-screen').classList.remove('hidden');
-            document.getElementById('user-display-name').innerText = user.username;
-            document.getElementById('user-status-plan').innerText = `Тариф: ${user.plan} (Запросы: ${user.requests}/${user.limit})`;
-            showToast(`Добро пожаловать, ${user.username}!`);
-        }
-
-        async function sendTextMessage() {
-            const promptInput = document.getElementById('chat-input');
-            const prompt = promptInput.value;
-            if(!prompt) return;
-
-            appendMessageBubble(prompt, 'user');
-            promptInput.value = '';
-
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ email: activeSessionUser.email, prompt, mode: document.getElementById('select-mode').value })
+            const res = await fetch('/api/auth/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username, password })
             });
             const data = await res.json();
             
-            if(data.answer) {
-                appendMessageBubble(data.answer, 'kristi');
-                executeVoiceSynthesis(data.answer);
+            if(data.success) {
+                currentUser = data.user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-screen').classList.remove('hidden');
+                updateUI();
+                renderHistory();
+            } else { alert(data.error); }
+        }
+
+        function updateUI() {
+            document.getElementById('ui-username').innerText = currentUser.username;
+            document.getElementById('ui-id').innerText = currentUser.id;
+            document.getElementById('ui-plan').innerText = `Тариф: ${currentUser.plan}`;
+            if(currentUser.avatar) {
+                document.getElementById('ui-avatar').innerHTML = `<img src="${currentUser.avatar}">`;
             } else {
-                appendMessageBubble(data.error, 'kristi');
+                document.getElementById('ui-avatar').innerText = currentUser.username[0].toUpperCase();
             }
         }
 
-        function appendMessageBubble(text, sender) {
-            const scroller = document.getElementById('chat-scroller');
-            const bubble = document.createElement('div');
-            bubble.classList.add('message', sender);
-            bubble.innerText = text;
-            scroller.appendChild(bubble);
-            scroller.scrollTop = scroller.scrollHeight;
+        function renderHistory() {
+            const chat = document.getElementById('chat');
+            chat.innerHTML = '';
+            if(currentUser.chat_history.length === 0) {
+                chat.innerHTML = '<div class="msg kristi">Привет! Я Kristi. Жду твой первый запрос.</div>';
+            } else {
+                currentUser.chat_history.forEach(m => {
+                    chat.innerHTML += `<div class="msg ${m.role}">${m.text}</div>`;
+                });
+            }
+            chat.scrollTop = chat.scrollHeight;
         }
 
-        function executeVoiceSynthesis(text) {
-            voiceSynthesisEngine.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            const selectedVoice = document.getElementById('select-voice').value;
-            
-            // Логика имитации голосов через скорость и тональность SpeechSynthesis
-            if (selectedVoice === 'Albi') { utterance.rate = 0.9; utterance.pitch = 1.2; }
-            else if (selectedVoice === 'Erik') { utterance.rate = 1.0; utterance.pitch = 0.7; }
-            else { utterance.rate = 1.1; utterance.pitch = 1.0; } // Core Kristi
-
-            voiceSynthesisEngine.speak(utterance);
-        }
-
-        function toggleLifeMode() {
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'ru-RU';
-            const wave = document.getElementById('voice-wave-animation');
-
-            wave.style.display = 'flex';
-            recognition.start();
-
-            recognition.onresult = (e) => {
-                wave.style.display = 'none';
-                document.getElementById('chat-input').value = e.results[0][0].transcript;
-                sendTextMessage();
+        function handleFile() {
+            const file = document.getElementById('file-upload').files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                attachedImageBase64 = e.target.result;
+                alert('Фото прикреплено!');
             };
-            recognition.onerror = () => wave.style.display = 'none';
+            reader.readAsDataURL(file);
         }
 
-        function purchasePlan(planName) {
-            showToast(`Генерация сессии оплаты через Heleket для тарифа ${planName}...`);
-            // Здесь под капотом собирается ссылка
+        async function sendMsg() {
+            const promptInput = document.getElementById('prompt');
+            const prompt = promptInput.value;
+            if(!prompt && !attachedImageBase64) return;
+
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div class="msg user">${prompt} ${attachedImageBase64 ? '[Фото]' : ''}</div>`;
+            promptInput.value = '';
+            chat.scrollTop = chat.scrollHeight;
+
+            const reqBody = { username: currentUser.username, prompt, mode: document.getElementById('mode-select').value };
+            if(attachedImageBase64) reqBody.imageBase64 = attachedImageBase64;
+            attachedImageBase64 = null; // Очищаем после отправки
+
+            const res = await fetch('/api/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(reqBody) });
+            const data = await res.json();
+
+            if(data.answer) {
+                chat.innerHTML += `<div class="msg kristi">${data.answer}</div>`;
+                playVoice(data.answer);
+            } else { alert(data.error); }
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function playVoice(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voice = document.getElementById('voice-select').value;
+            if(voice === 'Albi') { utterance.rate = 0.9; utterance.pitch = 1.2; }
+            else if(voice === 'Erik') { utterance.rate = 1.0; utterance.pitch = 0.7; }
+            else { utterance.rate = 1.1; utterance.pitch = 1.0; } // Kristi
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startLifeMode() {
+            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            rec.lang = 'ru-RU';
+            rec.start();
+            rec.onresult = (e) => { document.getElementById('prompt').value = e.results[0][0].transcript; sendMsg(); };
+        }
+
+        // Профиль
+        function toggleProfile() { document.getElementById('profile-modal').classList.toggle('hidden'); }
+        
+        function uploadAvatar(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { currentUser.avatar = ev.target.result; document.getElementById('ui-avatar').innerHTML = `<img src="${currentUser.avatar}">`; };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+
+        async function updateProfile() {
+            const oldPass = document.getElementById('old-pass').value;
+            const newPass = document.getElementById('new-pass').value;
+            const res = await fetch('/api/profile/update', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: currentUser.username, avatar: currentUser.avatar, oldPassword: oldPass, newPassword: newPass })
+            });
+            const data = await res.json();
+            if(data.success) { alert('Сохранено!'); toggleProfile(); } else { alert(data.error); }
         }
 
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
