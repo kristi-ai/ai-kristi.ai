@@ -1,15 +1,16 @@
 {
   "short_name": "Kristi AI",
-  "name": "Kristi AI: Intelligent Assistant",
+  "name": "Kristi AI",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/1698/1698535.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#ff6b6b",
-  "background_color": "#0d0e12"
+  "background_color": "#0d0f14"
 }
